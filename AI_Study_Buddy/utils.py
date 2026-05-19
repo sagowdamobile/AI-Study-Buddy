@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -10,8 +11,6 @@ from pypdf import PdfReader
 
 # Keep one central path for history so every module uses the same file.
 HISTORY_FILE = Path(__file__).parent / "data" / "study_history.json"
-JSON_DECODER = json.JSONDecoder()
-JSON_OPENING_CHARS = {"{", "["}
 
 
 def load_api_key() -> str:
@@ -60,18 +59,16 @@ def extract_json_from_text(text: str) -> Dict[str, Any]:
         parsed = json.loads(cleaned)
         if isinstance(parsed, dict):
             return parsed
-        if isinstance(parsed, list):
-            return {"items": parsed}
+        return {}
     except json.JSONDecodeError:
-        for index, char in enumerate(cleaned):
-            if char not in JSON_OPENING_CHARS:
-                continue
+        decoder = json.JSONDecoder()
+        for match in re.finditer(r"[{\[]", cleaned):
             try:
-                parsed, _ = JSON_DECODER.raw_decode(cleaned[index:])
+                parsed, _ = decoder.raw_decode(cleaned[match.start() :])
                 if isinstance(parsed, dict):
                     return parsed
                 if isinstance(parsed, list):
-                    return {"items": parsed}
+                    return {}
             except json.JSONDecodeError:
                 continue
 
