@@ -10,12 +10,20 @@ from pypdf import PdfReader
 
 # Keep one central path for history so every module uses the same file.
 HISTORY_FILE = Path(__file__).parent / "data" / "study_history.json"
+ENV_FILE = Path(__file__).resolve().parent / ".env"
 
 
 def load_api_key() -> str:
     """Load Gemini API key from .env file and return it."""
-    load_dotenv()
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    # Always load from the app-local .env file and override stale global values.
+    load_dotenv(dotenv_path=ENV_FILE, override=True)
+    api_key = os.getenv("GEMINI_API_KEY", "").strip().strip('"').strip("'")
+
+    if api_key.lower() in {"", "your_gemini_api_key_here", "replace_me"}:
+        raise ValueError(
+            "Gemini API key is not set. Open AI_Study_Buddy/.env and set GEMINI_API_KEY to your real key."
+        )
+
     if not api_key:
         raise ValueError(
             "GEMINI_API_KEY is missing. Add it in your .env file before running the app."
@@ -33,7 +41,16 @@ def get_gemini_model(model_name: str = "gemini-1.5-flash") -> genai.GenerativeMo
 def ask_gemini(prompt: str, model_name: str = "gemini-1.5-flash") -> str:
     """Send a prompt to Gemini and return plain text response."""
     model = get_gemini_model(model_name)
-    response = model.generate_content(prompt)
+    try:
+        response = model.generate_content(prompt)
+    except Exception as exc:
+        message = str(exc)
+        if "API_KEY_INVALID" in message or "API key not valid" in message:
+            raise ValueError(
+                "Invalid Gemini API key. Please generate a new key in Google AI Studio, "
+                "paste it into AI_Study_Buddy/.env as GEMINI_API_KEY, then restart Streamlit."
+            ) from exc
+        raise RuntimeError(f"Gemini request failed: {message}") from exc
 
     if hasattr(response, "text") and response.text:
         return response.text.strip()

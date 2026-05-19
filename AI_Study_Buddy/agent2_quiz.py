@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 
-from utils import ask_gemini, extract_json_from_text
+from .utils import ask_gemini, extract_json_from_text
 
 
 def generate_quiz(

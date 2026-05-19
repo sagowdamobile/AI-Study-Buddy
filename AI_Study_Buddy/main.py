@@ -3,15 +3,23 @@ from typing import Dict, List
 
 import streamlit as st
 
-from agent1_explainer import explain_topic, generate_flashcards, generate_key_points, summarize_notes
-from agent2_quiz import evaluate_short_answer, generate_quiz
-from utils import (
+from .agent1_explainer import explain_topic, generate_flashcards, generate_key_points, summarize_notes
+from .agent2_quiz import evaluate_short_answer, generate_quiz
+from .utils import (
     average_score_percent,
     build_history_entry,
     load_history,
     read_pdf_text,
     save_history_entry,
 )
+
+
+def show_error(message_prefix: str, exc: Exception) -> None:
+    """Show friendly errors for known issues and debug details for unexpected ones."""
+    st.error(f"{message_prefix}: {exc}")
+    if not isinstance(exc, ValueError):
+        with st.expander("Technical details", expanded=False):
+            st.code(traceback.format_exc())
 
 
 def apply_dark_theme() -> None:
@@ -353,8 +361,7 @@ def main() -> None:
                     else:
                         st.session_state["flashcards"] = []
                 except Exception as exc:
-                    st.error(f"Error while generating study guide: {exc}")
-                    st.code(traceback.format_exc())
+                    show_error("Error while generating study guide", exc)
 
     if generate_quiz_btn:
         if not topic.strip():
@@ -370,8 +377,7 @@ def main() -> None:
                     )
                     st.session_state["quiz_result"] = None
                 except Exception as exc:
-                    st.error(f"Error while generating quiz: {exc}")
-                    st.code(traceback.format_exc())
+                    show_error("Error while generating quiz", exc)
 
     render_study_outputs()
     render_quiz_block(topic=topic)
