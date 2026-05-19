@@ -10,6 +10,8 @@ from pypdf import PdfReader
 
 # Keep one central path for history so every module uses the same file.
 HISTORY_FILE = Path(__file__).parent / "data" / "study_history.json"
+JSON_DECODER = json.JSONDecoder()
+JSON_OPENING_CHARS = {"{", "["}
 
 
 def load_api_key() -> str:
@@ -61,12 +63,11 @@ def extract_json_from_text(text: str) -> Dict[str, Any]:
         if isinstance(parsed, list):
             return {"items": parsed}
     except json.JSONDecodeError:
-        decoder = json.JSONDecoder()
         for index, char in enumerate(cleaned):
-            if char not in "{[":
+            if char not in JSON_OPENING_CHARS:
                 continue
             try:
-                parsed, _ = decoder.raw_decode(cleaned[index:])
+                parsed, _ = JSON_DECODER.raw_decode(cleaned[index:])
                 if isinstance(parsed, dict):
                     return parsed
                 if isinstance(parsed, list):
