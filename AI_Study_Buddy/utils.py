@@ -47,6 +47,13 @@ def extract_json_from_text(text: str) -> Dict[str, Any]:
     try:
         return json.loads(cleaned)
     except json.JSONDecodeError as exc:
+        start = cleaned.find("{")
+        end = cleaned.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            try:
+                return json.loads(cleaned[start : end + 1])
+            except json.JSONDecodeError:
+                pass
         raise ValueError("Could not parse JSON from model output.") from exc
 
 
