@@ -56,8 +56,19 @@ def extract_json_from_text(text: str) -> Dict[str, Any]:
 
     try:
         return json.loads(cleaned)
-    except json.JSONDecodeError as exc:
-        raise ValueError("Could not parse JSON from model output.") from exc
+    except json.JSONDecodeError:
+        decoder = json.JSONDecoder()
+        for index, char in enumerate(cleaned):
+            if char not in "{[":
+                continue
+            try:
+                parsed, _ = decoder.raw_decode(cleaned[index:])
+                if isinstance(parsed, dict):
+                    return parsed
+            except json.JSONDecodeError:
+                continue
+
+        raise ValueError("Could not parse JSON from model output.")
 
 
 def read_pdf_text(uploaded_file: Any) -> str:
