@@ -41,10 +41,13 @@ Rules:
 - Keep questions beginner-friendly.
 - Ensure correct answer letter matches one option.
 {context_block}
-"""
+    """
 
     result = ask_gemini(prompt)
-    parsed = extract_json_from_text(result)
+    try:
+        parsed = extract_json_from_text(result)
+    except ValueError:
+        parsed = {}
 
     mcqs = parsed.get("mcqs", []) if isinstance(parsed, dict) else []
     shorts = parsed.get("short_answers", []) if isinstance(parsed, dict) else []
@@ -117,7 +120,10 @@ Rules:
 """
 
     result = ask_gemini(prompt)
-    parsed = extract_json_from_text(result)
+    try:
+        parsed = extract_json_from_text(result)
+    except ValueError:
+        parsed = {}
 
     score = int(parsed.get("score", 0)) if isinstance(parsed, dict) else 0
     feedback = str(parsed.get("feedback", "No feedback generated.")).strip() if isinstance(parsed, dict) else "No feedback generated."

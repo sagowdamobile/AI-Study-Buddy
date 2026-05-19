@@ -75,10 +75,13 @@ Rules:
 - Keep front side short.
 - Keep back side clear and beginner friendly.
 {context_block}
-"""
+    """
 
     result = ask_gemini(prompt)
-    parsed = extract_json_from_text(result)
+    try:
+        parsed = extract_json_from_text(result)
+    except ValueError:
+        return []
     cards = parsed.get("flashcards", [])
 
     if not isinstance(cards, list):

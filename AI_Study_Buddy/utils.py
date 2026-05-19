@@ -59,16 +59,14 @@ def extract_json_from_text(text: str) -> Dict[str, Any]:
         parsed = json.loads(cleaned)
         if isinstance(parsed, dict):
             return parsed
-        return {}
+        raise ValueError("Expected JSON object but received a different JSON type.")
     except json.JSONDecodeError:
         decoder = json.JSONDecoder()
-        for match in re.finditer(r"[{\[]", cleaned):
+        for match in re.finditer(r"\{", cleaned):
             try:
                 parsed, _ = decoder.raw_decode(cleaned[match.start() :])
                 if isinstance(parsed, dict):
                     return parsed
-                if isinstance(parsed, list):
-                    return {}
             except json.JSONDecodeError:
                 continue
 
