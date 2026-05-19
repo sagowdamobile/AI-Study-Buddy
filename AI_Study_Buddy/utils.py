@@ -48,15 +48,15 @@ def extract_json_from_text(text: str) -> Dict[str, Any]:
         return json.loads(cleaned)
     except json.JSONDecodeError as exc:
         decoder = json.JSONDecoder()
-        for json_start, char in enumerate(cleaned):
-            if char not in "{[":
-                continue
+        json_start = cleaned.find("{")
+        while json_start != -1:
             try:
                 parsed, _ = decoder.raw_decode(cleaned, json_start)
                 if isinstance(parsed, dict):
                     return parsed
             except json.JSONDecodeError:
-                continue
+                pass
+            json_start = cleaned.find("{", json_start + 1)
         raise ValueError("Could not parse JSON from model output.") from exc
 
 
