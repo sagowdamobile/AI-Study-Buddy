@@ -1,6 +1,9 @@
+import logging
 from typing import Any, Dict, List, Optional
 
 from utils import ask_gemini, extract_json_from_text
+
+LOGGER = logging.getLogger(__name__)
 
 
 def generate_quiz(
@@ -46,7 +49,8 @@ Rules:
     result = ask_gemini(prompt)
     try:
         parsed = extract_json_from_text(result)
-    except ValueError:
+    except ValueError as exc:
+        LOGGER.warning("Failed to parse quiz JSON: %s", exc)
         parsed = {}
 
     mcqs = parsed.get("mcqs", []) if isinstance(parsed, dict) else []
@@ -122,7 +126,8 @@ Rules:
     result = ask_gemini(prompt)
     try:
         parsed = extract_json_from_text(result)
-    except ValueError:
+    except ValueError as exc:
+        LOGGER.warning("Failed to parse short-answer evaluation JSON: %s", exc)
         parsed = {}
 
     score = int(parsed.get("score", 0)) if isinstance(parsed, dict) else 0

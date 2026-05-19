@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import re
 from datetime import datetime
@@ -11,6 +12,7 @@ from pypdf import PdfReader
 
 # Keep one central path for history so every module uses the same file.
 HISTORY_FILE = Path(__file__).parent / "data" / "study_history.json"
+LOGGER = logging.getLogger(__name__)
 
 
 def load_api_key() -> str:
@@ -62,7 +64,9 @@ def extract_json_from_text(text: str) -> Dict[str, Any]:
         raise ValueError("Expected JSON object but received a different JSON type.")
     except json.JSONDecodeError:
         decoder = json.JSONDecoder()
-        for match in re.finditer(r"\{", cleaned):
+        for attempt, match in enumerate(re.finditer(r"\{", cleaned), start=1):
+            if attempt > 20:
+                break
             try:
                 parsed, _ = decoder.raw_decode(cleaned[match.start() :])
                 if isinstance(parsed, dict):
@@ -70,6 +74,7 @@ def extract_json_from_text(text: str) -> Dict[str, Any]:
             except json.JSONDecodeError:
                 continue
 
+        LOGGER.warning("Could not parse JSON object from model output.")
         raise ValueError("Could not parse JSON from model output.")
 
 def read_pdf_text(uploaded_file: Any) -> str:

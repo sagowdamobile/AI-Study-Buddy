@@ -1,6 +1,9 @@
+import logging
 from typing import Dict, List, Optional
 
 from utils import ask_gemini, extract_json_from_text
+
+LOGGER = logging.getLogger(__name__)
 
 
 def explain_topic(topic: str, extra_context: Optional[str] = None) -> str:
@@ -80,7 +83,8 @@ Rules:
     result = ask_gemini(prompt)
     try:
         parsed = extract_json_from_text(result)
-    except ValueError:
+    except ValueError as exc:
+        LOGGER.warning("Failed to parse flashcards JSON: %s", exc)
         return []
     cards = parsed.get("flashcards", [])
 
