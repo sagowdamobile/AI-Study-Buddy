@@ -55,7 +55,11 @@ def extract_json_from_text(text: str) -> Dict[str, Any]:
         cleaned = cleaned.split("```", 1)[1].split("```", 1)[0].strip()
 
     try:
-        return json.loads(cleaned)
+        parsed = json.loads(cleaned)
+        if isinstance(parsed, dict):
+            return parsed
+        if isinstance(parsed, list):
+            return {"items": parsed}
     except json.JSONDecodeError:
         decoder = json.JSONDecoder()
         for index, char in enumerate(cleaned):
@@ -65,10 +69,14 @@ def extract_json_from_text(text: str) -> Dict[str, Any]:
                 parsed, _ = decoder.raw_decode(cleaned[index:])
                 if isinstance(parsed, dict):
                     return parsed
+                if isinstance(parsed, list):
+                    return {"items": parsed}
             except json.JSONDecodeError:
                 continue
 
         raise ValueError("Could not parse JSON from model output.")
+
+    raise ValueError("Could not parse JSON from model output.")
 
 
 def read_pdf_text(uploaded_file: Any) -> str:
