@@ -36,7 +36,7 @@ def ask_ollama(prompt: str, model: str = OLLAMA_MODEL) -> str:
 
 
 def extract_json_from_text(text: str) -> Dict[str, Any]:
-    """Safely parse JSON from model output, even if wrapped in markdown."""
+    """Safely parse a JSON object from model output, even if wrapped in markdown."""
     cleaned = text.strip()
 
     if "```json" in cleaned:
@@ -52,7 +52,7 @@ def extract_json_from_text(text: str) -> Dict[str, Any]:
             if char not in "{[":
                 continue
             try:
-                parsed, _ = decoder.raw_decode(cleaned[json_start:])
+                parsed, _ = decoder.raw_decode(cleaned, json_start)
                 if isinstance(parsed, dict):
                     return parsed
             except json.JSONDecodeError:
