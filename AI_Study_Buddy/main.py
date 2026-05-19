@@ -137,7 +137,7 @@ def render_header() -> None:
     """Render app title and quick labels."""
     st.markdown('<div class="headline">AI Study Buddy + Quiz Master</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="subline">Two AI agents collaborate: one teaches, one tests. Powered by Ollama (llama3.2).</div>',
+        '<div class="subline">Two AI agents collaborate: one teaches, one tests. Built with Streamlit + Gemini 1.5 Flash.</div>',
         unsafe_allow_html=True,
     )
     st.markdown(
