@@ -77,7 +77,7 @@ Rules:
 {context_block}
 """
 
-    result = ask_gemini(prompt)
+    result = ask_ollama(prompt)
     parsed = extract_json_from_text(result)
     cards = parsed.get("flashcards", [])
 
