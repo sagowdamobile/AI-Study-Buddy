@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional
 
-from .utils import ask_gemini, extract_json_from_text
+from .utils import ask_ollama, extract_json_from_text
 
 
 def explain_topic(topic: str, extra_context: Optional[str] = None) -> str:
@@ -19,7 +19,7 @@ Rules:
 {context_block}
 """
 
-    return ask_gemini(prompt)
+    return ask_ollama(prompt)
 
 
 def summarize_notes(notes: str) -> str:
@@ -36,7 +36,7 @@ Rules:
 - Highlight what is most important.
 """
 
-    return ask_gemini(prompt)
+    return ask_ollama(prompt)
 
 
 def generate_key_points(topic: str, extra_context: Optional[str] = None) -> str:
@@ -54,7 +54,7 @@ Rules:
 {context_block}
 """
 
-    return ask_gemini(prompt)
+    return ask_ollama(prompt)
 
 
 def generate_flashcards(topic: str, extra_context: Optional[str] = None) -> List[Dict[str, str]]:

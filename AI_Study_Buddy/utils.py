@@ -1,65 +1,38 @@
 import json
-import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import google.generativeai as genai
-from dotenv import load_dotenv
+import requests
 from pypdf import PdfReader
 
 # Keep one central path for history so every module uses the same file.
 HISTORY_FILE = Path(__file__).parent / "data" / "study_history.json"
-ENV_FILE = Path(__file__).resolve().parent / ".env"
+
+# Ollama API endpoint
+OLLAMA_API_URL = "http://localhost:11434/api/generate"
+OLLAMA_MODEL = "llama3.2:1b"
 
 
-def load_api_key() -> str:
-    """Load Gemini API key from .env file and return it."""
-    # Always load from the app-local .env file and override stale global values.
-    load_dotenv(dotenv_path=ENV_FILE, override=True)
-    api_key = os.getenv("GEMINI_API_KEY", "").strip().strip('"').strip("'")
-
-    if api_key.lower() in {"", "your_gemini_api_key_here", "replace_me"}:
-        raise ValueError(
-            "Gemini API key is not set. Open AI_Study_Buddy/.env and set GEMINI_API_KEY to your real key."
-        )
-
-    if not api_key:
-        raise ValueError(
-            "GEMINI_API_KEY is missing. Add it in your .env file before running the app."
-        )
-    return api_key
-
-
-def get_gemini_model(model_name: str = "gemini-1.5-flash") -> genai.GenerativeModel:
-    """Create and return a Gemini model instance."""
-    api_key = load_api_key()
-    genai.configure(api_key=api_key)
-    return genai.GenerativeModel(model_name)
-
-
-def ask_gemini(prompt: str, model_name: str = "gemini-1.5-flash") -> str:
-    """Send a prompt to Gemini and return plain text response."""
-    model = get_gemini_model(model_name)
+def ask_ollama(prompt: str, model: str = OLLAMA_MODEL) -> str:
+    """Send a prompt to Ollama and return plain text response."""
     try:
-        response = model.generate_content(prompt)
+        response = requests.post(
+            OLLAMA_API_URL,
+            json={"model": model, "prompt": prompt, "stream": False},
+            timeout=120,
+        )
+        response.raise_for_status()
+        result = response.json()
+        return result.get("response", "").strip()
+    except requests.exceptions.ConnectionError:
+        raise RuntimeError(
+            "Cannot connect to Ollama. Make sure Ollama is running (ollama serve) on localhost:11434"
+        )
+    except requests.exceptions.Timeout:
+        raise RuntimeError("Ollama request timed out. The model may be processing a complex prompt.")
     except Exception as exc:
-        message = str(exc)
-        if "API_KEY_INVALID" in message or "API key not valid" in message:
-            raise ValueError(
-                "Invalid Gemini API key. Please generate a new key in Google AI Studio, "
-                "paste it into AI_Study_Buddy/.env as GEMINI_API_KEY, then restart Streamlit."
-            ) from exc
-        raise RuntimeError(f"Gemini request failed: {message}") from exc
-
-    if hasattr(response, "text") and response.text:
-        return response.text.strip()
-
-    # Fallback in case text is empty but candidates exist.
-    try:
-        return str(response.candidates[0].content.parts[0].text).strip()
-    except Exception as exc:
-        raise RuntimeError("Gemini returned an unexpected response format.") from exc
+        raise RuntimeError(f"Ollama request failed: {str(exc)}") from exc
 
 
 def extract_json_from_text(text: str) -> Dict[str, Any]:

@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 
-from .utils import ask_gemini, extract_json_from_text
+from .utils import ask_ollama, extract_json_from_text
 
 
 def generate_quiz(
@@ -43,7 +43,7 @@ Rules:
 {context_block}
 """
 
-    result = ask_gemini(prompt)
+    result = ask_ollama(prompt)
     parsed = extract_json_from_text(result)
 
     mcqs = parsed.get("mcqs", []) if isinstance(parsed, dict) else []
@@ -116,7 +116,7 @@ Rules:
 - feedback should be encouraging and helpful.
 """
 
-    result = ask_gemini(prompt)
+    result = ask_ollama(prompt)
     parsed = extract_json_from_text(result)
 
     score = int(parsed.get("score", 0)) if isinstance(parsed, dict) else 0
