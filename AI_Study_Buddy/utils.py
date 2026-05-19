@@ -76,9 +76,6 @@ def extract_json_from_text(text: str) -> Dict[str, Any]:
 
         raise ValueError("Could not parse JSON from model output.")
 
-    raise ValueError("Could not parse JSON from model output.")
-
-
 def read_pdf_text(uploaded_file: Any) -> str:
     """Extract text from an uploaded PDF file."""
     reader = PdfReader(uploaded_file)
