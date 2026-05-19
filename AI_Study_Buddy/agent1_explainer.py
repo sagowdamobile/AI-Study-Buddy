@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional
 
-from utils import ask_ollama, extract_json_from_text
+from utils import ask_ollama, ask_ollama_json, extract_json_from_text
 
 
 def explain_topic(topic: str, extra_context: Optional[str] = None) -> str:
@@ -61,23 +61,12 @@ def generate_flashcards(topic: str, extra_context: Optional[str] = None) -> List
     """Generate simple Q/A flashcards for active recall."""
     context_block = f"\nReference context:\n{extra_context}" if extra_context else ""
 
-    prompt = f"""
-You are Study Buddy Agent.
-Create exactly 6 flashcards for this topic: {topic}
-Return ONLY valid JSON in this format:
-{{
-  "flashcards": [
-    {{"front": "question", "back": "answer"}}
-  ]
-}}
+    prompt = f"""You are a study assistant. Create exactly 6 flashcards for the topic: {topic}
+Output ONLY a JSON object with this exact structure, no extra text:
+{{"flashcards": [{{"front": "question here", "back": "answer here"}}]}}
+Make 6 flashcard objects. Keep each front short, each back clear and beginner-friendly.{context_block}"""
 
-Rules:
-- Keep front side short.
-- Keep back side clear and beginner friendly.
-{context_block}
-"""
-
-    result = ask_ollama(prompt)
+    result = ask_ollama_json(prompt)
     parsed = extract_json_from_text(result)
     cards = parsed.get("flashcards", [])
 

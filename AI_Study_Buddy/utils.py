@@ -1,53 +1,91 @@
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import requests
+from dotenv import load_dotenv
 from pypdf import PdfReader
 
 # Keep one central path for history so every module uses the same file.
 HISTORY_FILE = Path(__file__).parent / "data" / "study_history.json"
+ENV_FILE = Path(__file__).resolve().parent / ".env"
 
-# Ollama API endpoint
-OLLAMA_API_URL = "http://localhost:11434/api/generate"
-OLLAMA_MODEL = "llama3.2:1b"
+load_dotenv(dotenv_path=ENV_FILE, override=True)
+
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:1b")
 
 
-def ask_ollama(prompt: str, model: str = OLLAMA_MODEL) -> str:
-    """Send a prompt to Ollama and return plain text response."""
+def _post_ollama(payload: Dict[str, Any]) -> str:
+    """Internal helper: POST to Ollama and return the response text."""
+    url = f"{OLLAMA_BASE_URL}/api/generate"
     try:
-        response = requests.post(
-            OLLAMA_API_URL,
-            json={"model": model, "prompt": prompt, "stream": False},
-            timeout=120,
-        )
+        response = requests.post(url, json=payload, timeout=180)
         response.raise_for_status()
-        result = response.json()
-        return result.get("response", "").strip()
     except requests.exceptions.ConnectionError:
         raise RuntimeError(
-            "Cannot connect to Ollama. Make sure Ollama is running (ollama serve) on localhost:11434"
+            "Cannot connect to Ollama. Make sure Ollama is running (ollama serve) on "
+            + OLLAMA_BASE_URL
         )
     except requests.exceptions.Timeout:
-        raise RuntimeError("Ollama request timed out. The model may be processing a complex prompt.")
-    except Exception as exc:
-        raise RuntimeError(f"Ollama request failed: {str(exc)}") from exc
+        raise RuntimeError("Ollama request timed out. The model may be taking too long to respond.")
+    except requests.exceptions.HTTPError as exc:
+        raise RuntimeError(f"Ollama returned an error: {exc}") from exc
+
+    data = response.json()
+    text = data.get("response", "").strip()
+    if not text:
+        raise RuntimeError("Ollama returned an empty response.")
+    return text
+
+
+def ask_ollama(prompt: str) -> str:
+    """Send a prompt to a local Ollama model and return the response text."""
+    return _post_ollama({"model": OLLAMA_MODEL, "prompt": prompt, "stream": False})
+
+
+def ask_ollama_json(prompt: str) -> str:
+    """Send a prompt requiring JSON output. Uses Ollama format=json to enforce valid JSON."""
+    return _post_ollama({"model": OLLAMA_MODEL, "prompt": prompt, "stream": False, "format": "json"})
 
 
 def extract_json_from_text(text: str) -> Dict[str, Any]:
-    """Safely parse JSON from model output, even if wrapped in markdown."""
+    """Safely parse JSON from model output with multiple fallback strategies."""
     cleaned = text.strip()
 
+    # Strategy 1: strip markdown code fences
     if "```json" in cleaned:
         cleaned = cleaned.split("```json", 1)[1].split("```", 1)[0].strip()
     elif "```" in cleaned:
         cleaned = cleaned.split("```", 1)[1].split("```", 1)[0].strip()
 
+    # Strategy 2: direct parse
     try:
         return json.loads(cleaned)
-    except json.JSONDecodeError as exc:
-        raise ValueError("Could not parse JSON from model output.") from exc
+    except json.JSONDecodeError:
+        pass
+
+    # Strategy 3: find outermost { ... } block
+    start = cleaned.find("{")
+    end = cleaned.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        try:
+            return json.loads(cleaned[start : end + 1])
+        except json.JSONDecodeError:
+            pass
+
+    # Strategy 4: find outermost [ ... ] block
+    start = cleaned.find("[")
+    end = cleaned.rfind("]")
+    if start != -1 and end != -1 and end > start:
+        try:
+            return json.loads(cleaned[start : end + 1])
+        except json.JSONDecodeError:
+            pass
+
+    raise ValueError("Could not parse JSON from model output.")
 
 
 def read_pdf_text(uploaded_file: Any) -> str:
