@@ -3,9 +3,9 @@ from typing import Dict, List
 
 import streamlit as st
 
-from .agent1_explainer import explain_topic, generate_flashcards, generate_key_points, summarize_notes
-from .agent2_quiz import evaluate_short_answer, generate_quiz
-from .utils import (
+from agent1_explainer import explain_topic, generate_flashcards, generate_key_points, summarize_notes
+from agent2_quiz import evaluate_short_answer, generate_quiz
+from utils import (
     average_score_percent,
     build_history_entry,
     load_history,

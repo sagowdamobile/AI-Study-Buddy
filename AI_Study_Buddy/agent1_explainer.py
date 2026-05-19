@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional
 
-from .utils import ask_ollama, extract_json_from_text
+from utils import ask_ollama, extract_json_from_text
 
 
 def explain_topic(topic: str, extra_context: Optional[str] = None) -> str:
