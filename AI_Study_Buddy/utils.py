@@ -8,6 +8,8 @@ from pypdf import PdfReader
 
 # Keep one central path for history so every module uses the same file.
 HISTORY_FILE = Path(__file__).parent / "data" / "study_history.json"
+JSON_DECODER = json.JSONDecoder()
+JSON_OPENING_CHARS = {"{", "["}
 
 # Ollama API endpoint
 OLLAMA_API_URL = "http://localhost:11434/api/generate"
@@ -45,10 +47,25 @@ def extract_json_from_text(text: str) -> Dict[str, Any]:
         cleaned = cleaned.split("```", 1)[1].split("```", 1)[0].strip()
 
     try:
-        return json.loads(cleaned)
-    except json.JSONDecodeError as exc:
-        raise ValueError("Could not parse JSON from model output.") from exc
+        parsed = json.loads(cleaned)
+        if isinstance(parsed, dict):
+            return parsed
+        if isinstance(parsed, list):
+            return {"items": parsed}
+    except json.JSONDecodeError:
+        for index, char in enumerate(cleaned):
+            if char not in JSON_OPENING_CHARS:
+                continue
+            try:
+                parsed, _ = JSON_DECODER.raw_decode(cleaned[index:])
+                if isinstance(parsed, dict):
+                    return parsed
+                if isinstance(parsed, list):
+                    return {"items": parsed}
+            except json.JSONDecodeError:
+                continue
 
+        raise ValueError("Could not parse JSON from model output.")
 
 def read_pdf_text(uploaded_file: Any) -> str:
     """Extract text from an uploaded PDF file."""
